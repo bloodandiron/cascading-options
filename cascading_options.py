@@ -1,6 +1,7 @@
 import argparse
 import yaml
 
+
 class cascading_parser(object):
     """
     Cascading options parser
@@ -11,15 +12,20 @@ class cascading_parser(object):
 
     default: set via the add_option function, None if not specified
     config file: json or yaml, specified via the builtin '--config' or '-c' command line option
-                 pass config_required=True to constructor to make it a required argument
     command line: specified when calling the program
     """
     options = {}
     _cmdline = []
     
-    def __init__(self, config_required=False, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        # handle argparse options that are not supported
+        for option in ['prefix_char', 'fromfile_prefix_chars', 'parents',
+                       'conflict_handler']:
+            if option in kwargs:
+                raise Exception('{0} option not supported'.format(option))
+
         self._argparser = argparse.ArgumentParser(*args, **kwargs)
-        self._argparser.add_argument('--config', '-c', metavar='file', required=config_required,
+        self._argparser.add_argument('--config', '-c', metavar='file',
                                      help='config file location')
         self._parsed = False
 
