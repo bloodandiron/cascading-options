@@ -14,5 +14,12 @@ Usage
 ~~~~~
 Acts as a semi drop-in replacement to the standard argparse module.
 
-Use cascading_parser.cascading_parser(..., config_required=True) to force the config option as required (default: False).
-Use cascading_parser.add_option(..., cmdline=True) to have an option only avaliable on the command line and cmdline=False to have it only avaliable in the config file (default: Avaliable in both)
+For commandline only options use::
+
+    cascading_parser.add_option(..., cmdline=True)
+
+For config file only options use::
+
+    cascading_parser.add_option(..., cmdline=False)
+
+Default behavior is to have the option avaliable in both.
