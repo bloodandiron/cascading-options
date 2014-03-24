@@ -1,4 +1,5 @@
 import argparse
+import sys
 import yaml
 
 
@@ -14,9 +15,58 @@ class cascading_parser(object):
     config file: json or yaml, specified via the builtin '--config' or '-c' command line option
     command line: specified when calling the program
     """
-    options = {}
-    _cmdline = []
-    _required = []
+    class option(object):
+        def __init__(self, *args, **kwargs):
+            if not args:
+                raise Exception('Option must have a name')
+            if not args[0].startswith('-'):
+                self.positional = True
+                self.prefix = ""
+                self.name = args[0]
+            else:
+                self.positional = False
+                self.name = next((arg for arg in args if arg.startswith('--')), None)
+                self.prefix = '--'
+                if self.name is None:
+                    self.name = args[0]
+                    self.prefix = '-'
+                self.name = self.name.lstrip('-')
+            self.long = [arg.lstrip('-') for arg in args if arg.startswith('--')]
+            self.short = [arg.lstrip('-') for arg in args if arg.lstrip('-') not in self.long]
+            self.required = kwargs.get('required') or self.positional
+            self.cmdline = kwargs.get('cmdline')
+            self._args = kwargs.get('default')
+            self.action = kwargs.get('action') or 'store'
+
+        @property
+        def args(self):
+            return self._args
+
+        @args.setter
+        def args(self, value):
+            self._args = value
+
+        def to_cmdline(self):
+            """
+            Returns a list formatted as if this option was passed to the command line.
+            """
+            if self.positional:
+                return [self.args]
+            return [self.prefix + self.name, self._args]
+
+        def included_in(self, argument_list):
+            """
+            Returns if this option is in the argument list (with prefix).
+            """
+            for arg in self.long:
+                if '--' + arg in argument_list:
+                    return True
+            for arg in self.short:
+                if '-' + arg in argument_list:
+                    return True
+            return False
+
+    options = []
 
     def __init__(self, *args, **kwargs):
         # handle argparse options that are not supported
@@ -46,24 +96,10 @@ class cascading_parser(object):
             if arg.lstrip('-') in ['config', 'c', 'help', 'h']:
                 raise Exception('{0} is a reserved argument'.format(arg))
 
-        # check for positional arguments
-        if not args[0].startswith('-'):
-            positional = True
-            argument = args[0]
-        else:
-            positional = False
-            argument = next((arg for arg in args if arg.startswith('--')), None)
-            if argument is None:
-                argument = args[0]
-            argument = argument.lstrip('-').replace('-', '_')
-
-        # handle required arguments
-        if kwargs.get('required') or positional:
-            self._required.append(argument)
+        self.options.append(self.option(*args, **kwargs))
 
         # set default value in options
         if kwargs.get('nargs') is None:
-            self.options[argument] = kwargs.get('default')
             kwargs['default'] = None
         else:
             raise Exception('Option nargs is not supported')
@@ -79,13 +115,9 @@ class cascading_parser(object):
         # if cmdline=False then it will be config file only
         # if cmdline=True then it will be command line only
         if 'cmdline' in kwargs:
-            if kwargs['cmdline']:
-                self._cmdline.append(argument)
-                del kwargs['cmdline']
-            elif kwargs['cmdline'] is None:
-                del kwargs['cmdline']
-            else:
+            if kwargs['cmdline'] is False:
                 return
+            del kwargs['cmdline']
 
         self._argparser.add_argument(*args, **kwargs)
 
@@ -99,29 +131,37 @@ class cascading_parser(object):
 
         # read config file
         configfile, remaining = self._configparser.parse_known_args()
-        print(remaining)
         config = {}
         if configfile.config:
             config = yaml.load(open(configfile.config))
 
-        # parse command line
+        # overload default values with config file
+        for i, option in enumerate(self.options):
+            if option.name in config and option.cmdline is not True:
+                self.options[i].args = config[option.name]
+
+        # add required options to command line and parse
+        for o in self.options:
+            if o.required and o.cmdline is not True and not o.included_in(remaining):
+                remaining += o.to_cmdline()
         cmdline = self._argparser.parse_args(remaining)
 
-        # overload default values with config file followed by command line
-        for k, v in self.options.items():
-            if k in config and k not in self._cmdline:
-                self.options[k] = config[k]
-            if hasattr(cmdline, k) and getattr(cmdline, k):
-                self.options[k] = getattr(cmdline, k)
-            setattr(self, k, self.options[k])
+        # overload default values command line values and populate return namespace
+        tmp = argparse.Namespace()
+        for i, option in enumerate(self.options):
+            if option.name in cmdline and getattr(cmdline, option.name) is not None:
+                self.options[i].args = getattr(cmdline, option.name)
+            setattr(tmp, option.name, option.args)
+        return tmp
 
     def write_options(self, filename):
         """
         Write current settings to a YAML file.
         """
-        tmp = self.options
-        for k in self._cmdline:
-            del tmp[k]
+        tmp = {}
+        for o in self.options:
+            if o.cmdline is not True:
+                tmp[o.name] = o.args
         with open(filename, 'w') as outfile:
             yaml.dump(tmp, outfile, indent=4, default_flow_style=True)
 
@@ -129,5 +169,4 @@ class cascading_parser(object):
     add_argument = add_option
 
     def parse_args(self):
-        self.cascade_options()
-        return self
+        return self.cascade_options()
