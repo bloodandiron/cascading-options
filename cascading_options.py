@@ -76,8 +76,11 @@ class cascading_parser(object):
             if kwargs['cmdline']:
                 self._cmdline.append(argument)
                 del kwargs['cmdline']
+            elif kwargs['cmdline'] is None:
+                del kwargs['cmdline']
             else:
                 return
+
         self._argparser.add_argument(*args, **kwargs)
 
     def cascade_options(self):
