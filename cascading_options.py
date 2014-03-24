@@ -35,6 +35,7 @@ class cascading_parser(object):
             self.short = [arg.lstrip('-') for arg in args if arg.lstrip('-') not in self.long]
             self.required = kwargs.get('required') or self.positional
             self.cmdline = kwargs.get('cmdline')
+            self.nargs = kwargs.get('nargs')
             self._args = kwargs.get('default')
             self.action = kwargs.get('action') or 'store'
 
@@ -44,20 +45,35 @@ class cascading_parser(object):
 
         @args.setter
         def args(self, value):
-            if self.action == 'store':
-                self._args = value
-            elif self.action in ['store_true', 'store_false']:
-                if isinstance(value, bool):
+            if self.nargs is None:
+                if self.action == 'store':
+                    self._args = value
+                elif self.action in ['store_true', 'store_false']:
+                    if isinstance(value, bool):
+                        self._args = value
+                    else:
+                        raise TypeError('Option must be assigned a boolean value')
+                elif self.action == 'store_const':
+                    if isinstance(value, (int, float, bool)):
+                        self._args = value
+                    else:
+                        raise TypeError('Option must be assigned an [int, float, boolean] value')
+                else:
+                    raise ValueError('Option has invalid action')
+            elif isinstance(self.nargs, int):
+                if self.action == 'store':
+                    if len(value) != self.nargs:
+                        raise ValueError('Incorrect number of arguments')
                     self._args = value
                 else:
-                    raise TypeError('Option must be assigned a boolean value')
-            elif self.action == 'store_const':
-                if isinstance(value, (int, float, bool)):
+                    raise ValueError('Option has invalid action')
+            elif self.nargs in ['+', '...']:
+                if self.action == 'store':
                     self._args = value
                 else:
-                    raise TypeError('Option must be assigned an [int, float, boolean] value')
+                    raise ValueError('Option has invalid action')
             else:
-                raise ValueError('Option has invalid action')
+                raise ValueError('Option has invalid nargs')
 
 
         def to_cmdline(self):
@@ -113,10 +129,7 @@ class cascading_parser(object):
         self.options.append(self.option(*args, **kwargs))
 
         # set default value in options
-        if kwargs.get('nargs') is None:
-            kwargs['default'] = None
-        else:
-            raise Exception('Option nargs is not supported')
+        kwargs['default'] = None
 
         # handle actions
         if kwargs.get('action') not in [None, 'store', 'store_true', 'store_false', 'store_const']:
