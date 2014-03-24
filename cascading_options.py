@@ -62,6 +62,14 @@ class cascading_parser(object):
         else:
             raise Exception('Option nargs is not supported')
 
+        # handle actions
+        if kwargs.get('action') not in [None, 'store', 'store_true', 'store_false', 'store_const']:
+            raise Exception('Option action has unsuppored value {0}'.format(kwargs.get('action')))
+
+        # handle choices
+        if 'choices' in kwargs:
+            raise Exception('Option choices is not supported')
+
         # if cmdline=False then it will be config file only
         # if cmdline=True then it will be command line only
         if 'cmdline' in kwargs:
