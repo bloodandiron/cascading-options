@@ -5,7 +5,7 @@ import yaml
 class cascading_parser(object):
     """
     Cascading options parser
-    
+
     Allows program configuration via a cascading series of option sources
     the sources are read in the following order, with sources lower in the
     list overwriting those higher up.
@@ -16,7 +16,7 @@ class cascading_parser(object):
     """
     options = {}
     _cmdline = []
-    
+
     def __init__(self, *args, **kwargs):
         # handle argparse options that are not supported
         for option in ['prefix_char', 'fromfile_prefix_chars', 'parents',
@@ -43,7 +43,7 @@ class cascading_parser(object):
         for arg in args:
             if arg.replace('-', '') in ['config', 'c', 'help', 'h']:
                 raise Exception('{0} is a reserved argument'.format(arg))
-        argument = args[0].replace('-', '')            
+        argument = args[0].replace('-', '')
 
         # set default value in options
         if 'default' in kwargs:
@@ -75,7 +75,7 @@ class cascading_parser(object):
         if cmdline.config:
             config = yaml.load(open(cmdline.config))
         # overload default values with config file
-        for k,v in self.options.items():
+        for k, v in self.options.items():
             if k in config and k not in self._cmdline:
                 self.options[k] = config[k]
             if hasattr(cmdline, k) and getattr(cmdline, k):
@@ -94,6 +94,7 @@ class cascading_parser(object):
 
     # for drop-in argparse replacement
     add_argument = add_option
+
     def parse_args(self):
         self.cascade_options()
         return self
