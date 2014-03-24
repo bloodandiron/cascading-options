@@ -41,9 +41,16 @@ class cascading_parser(object):
 
         # handle reserved arguments
         for arg in args:
-            if arg.replace('-', '') in ['config', 'c', 'help', 'h']:
+            if arg.lstrip('-') in ['config', 'c', 'help', 'h']:
                 raise Exception('{0} is a reserved argument'.format(arg))
-        argument = args[0].replace('-', '')
+
+        # check for positional arguments
+        if not args[0].startswith('-'):
+            positional = True
+            argument = args[0]
+        else:
+            positional = False
+            argument = args[0].lstrip('-').replace('-', '_')
 
         # set default value in options
         if 'default' in kwargs:
