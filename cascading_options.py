@@ -46,16 +46,18 @@ class cascading_parser(object):
         def args(self, value):
             if self.action == 'store':
                 self._args = value
-            if self.action in ['store_true', 'store_false']:
+            elif self.action in ['store_true', 'store_false']:
                 if isinstance(value, bool):
                     self._args = value
                 else:
                     raise TypeError('Option must be assigned a boolean value')
-            if self.action == 'store_const':
+            elif self.action == 'store_const':
                 if isinstance(value, (int, float, bool)):
                     self._args = value
                 else:
                     raise TypeError('Option must be assigned an [int, float, boolean] value')
+            else:
+                raise ValueError('Option has invalid action')
 
 
         def to_cmdline(self):
