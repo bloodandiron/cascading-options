@@ -50,7 +50,10 @@ class cascading_parser(object):
             argument = args[0]
         else:
             positional = False
-            argument = args[0].lstrip('-').replace('-', '_')
+            argument = next((arg for arg in args if arg.startswith('--')), None)
+            if argument is None:
+                argument = args[0]
+            argument = argument.lstrip('-').replace('-', '_')
 
         # set default value in options
         if 'default' in kwargs:
