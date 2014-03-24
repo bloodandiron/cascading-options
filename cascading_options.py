@@ -16,6 +16,7 @@ class cascading_parser(object):
     """
     options = {}
     _cmdline = []
+    _required = []
 
     def __init__(self, *args, **kwargs):
         # handle argparse options that are not supported
@@ -24,9 +25,10 @@ class cascading_parser(object):
             if option in kwargs:
                 raise Exception('{0} option not supported'.format(option))
 
+        self._configparser = argparse.ArgumentParser(add_help=False)
+        self._configparser.add_argument('--config', '-c', metavar='file',
+                                        help='config file location')
         self._argparser = argparse.ArgumentParser(*args, **kwargs)
-        self._argparser.add_argument('--config', '-c', metavar='file',
-                                     help='config file location')
         self._parsed = False
 
     def add_option(self, *args, **kwargs):
@@ -54,6 +56,10 @@ class cascading_parser(object):
             if argument is None:
                 argument = args[0]
             argument = argument.lstrip('-').replace('-', '_')
+
+        # handle required arguments
+        if kwargs.get('required') or positional:
+            self._required.append(argument)
 
         # set default value in options
         if kwargs.get('nargs') is None:
@@ -91,11 +97,17 @@ class cascading_parser(object):
             return
         self._parsed = True
 
-        cmdline = self._argparser.parse_args()
+        # read config file
+        configfile, remaining = self._configparser.parse_known_args()
+        print(remaining)
         config = {}
-        if cmdline.config:
-            config = yaml.load(open(cmdline.config))
-        # overload default values with config file
+        if configfile.config:
+            config = yaml.load(open(configfile.config))
+
+        # parse command line
+        cmdline = self._argparser.parse_args(remaining)
+
+        # overload default values with config file followed by command line
         for k, v in self.options.items():
             if k in config and k not in self._cmdline:
                 self.options[k] = config[k]
