@@ -56,11 +56,11 @@ class cascading_parser(object):
             argument = argument.lstrip('-').replace('-', '_')
 
         # set default value in options
-        if 'default' in kwargs:
-            self.options[argument] = kwargs['default']
+        if kwargs.get('nargs') is None:
+            self.options[argument] = kwargs.get('default')
             kwargs['default'] = None
         else:
-            self.options[argument] = None
+            raise Exception('Option nargs is not supported')
 
         # if cmdline=False then it will be config file only
         # if cmdline=True then it will be command line only
