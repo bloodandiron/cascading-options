@@ -164,12 +164,12 @@ class cascading_parser(object):
 
         # overload default values with config file
         for i, option in enumerate(self.options):
-            if option.name in config and option.cmdline is not True:
+            if option.name in config and not option.cmdline and not option.positional:
                 self.options[i].args = config[option.name]
 
         # add required options to command line and parse
         for o in self.options:
-            if o.required and o.cmdline is not True and not o.included_in(remaining):
+            if o.required and not o.cmdline and not o.included_in(remaining) and not o.positional:
                 remaining += o.to_cmdline()
         cmdline = self._argparser.parse_args(remaining)
 
