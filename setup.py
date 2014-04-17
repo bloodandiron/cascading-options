@@ -7,7 +7,7 @@ setup(
     author='Jonathan Marini',
     author_email='j.marini@ieee.org',
     license='MIT',
-    packages=['cascading_options',],
+    py_modules=['cascading_options',],
     install_requires=[
         'PyYAML == 3.10',
     ],
